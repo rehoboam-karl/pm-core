@@ -1,28 +1,29 @@
 # pm-core
 
-> Production-grade market validation, risk management and scoring primitives
-> for the Polymarket CLOB trading ecosystem.
+> Production-grade building blocks for Polymarket trading systems — in Rust.
 
-`pm-core` is a Rust library that implements the core trading primitives used in
-production Polymarket bots — extracted and cleaned for standalone use.
+[![CI](https://github.com/rehoboam-karl/pm-core/actions/workflows/ci.yml/badge.svg)](https://github.com/rehoboam-karl/pm-core/actions)
+[![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg)](https://www.rust-lang.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**What it does:**
+`pm-core` is a Rust library of battle-tested components for building
+ Polymarket trading bots: market quality validation, momentum scoring,
+ circuit breakers, position tracking, and trade journaling.
 
-- **Market Validation** — 5-rule binary gate filters low-quality markets before
-  entry (volume, spread, liquidity, operating hours, slippage)
-- **Market Momentum** — multi-factor scoring combining volume acceleration,
-  spread trends and price stability
-- **Risk Guard** — per-market and global exposure limits with dynamic
-  depth-adjusted position sizing
-- **Exposure Tracker** — in-memory multi-market position tracking with
-  cost-basis P&L and drawdown monitoring
-- **Trade Journal** — CSV append-only journal with backtesting-ready entries
-- **Market Cache** — thread-safe price/volume cache with TTL for high-frequency
-  scoring
+**No API keys. No async runtime. Runs anywhere.**
 
-**Why Rust?** No GC pauses, predictable latency, fearless concurrency.
-All modules are framework-agnostic: no runtime, no network I/O, no API
-credentials required.
+---
+
+## Modules
+
+| Module | What it does |
+|--------|-------------|
+| `market_validator` | 5-rule binary gate: spread, liquidity, slippage, hours, live |
+| `market_momentum` | 3-factor composite momentum score (volume, spread trend, price) |
+| `risk_guard` | Per-token circuit breaker with sequence detection |
+| `exposure_tracker` | In-memory position tracking with real-time P&L |
+| `trade_journal` | Async non-blocking CSV trade logger |
+| `market_cache` | Thread-safe price/volume cache with TTL |
 
 ---
 
@@ -31,73 +32,118 @@ credentials required.
 ```toml
 # Cargo.toml
 [dependencies]
-pm-core = { git = "https://github.com/fernando-karl/pm-core" }
+pm-core = { git = "https://github.com/rehoboam-karl/pm-core" }
 ```
 
-```rust
-use pm_core::*;
+Or clone and use locally:
 
-let cfg = market_validator::ValidatorConfig::default();
-let validator = MarketValidator::new(cfg);
-
-let stats = MarketStats {
-    volume_24h: 50_000.0,
-    spread: 0.02,
-    liquidity: 10_000.0,
-    open_interest: 5_000.0,
-    num_takers: 8,
-    hours_since_created: 48,
-};
-
-match validator.validate_with_stats("Will X happen by date?", &stats) {
-    Ok(_)  => println!("market passes quality gate"),
-    Err(e) => println!("rejected: {}", e),
-}
+```bash
+git clone https://github.com/rehoboam-karl/pm-core
+cd pm-core
+cargo build
+cargo test
+cargo run --bin demo   # runs the demo with synthetic data
 ```
 
-Run the demo binary:
+## Demo
+
+The `demo` binary shows all modules with synthetic data — no API keys needed:
 
 ```bash
 cargo run --bin demo
 ```
 
+```
+=== pm-core Demo ===
+
+--- MarketValidator ---
+  ✓ Market passes validation
+  ✗ Correctly rejected: Some("SPREAD_TOO_WIDE")
+
+--- RiskGuard ---
+  Small trade (30 shares): Allow
+  Large trade (5000 shares): Allow
+  With book depth check: Block
+
+--- TradeJournal ---
+  Entries written: (noop mode — see real journal in production)
+
+--- MarketMomentum ---
+  Period 1 momentum: 0.7 (calm market)
+  Period 2 momentum: 0.7 (volume surge)
+  Period 3 momentum: 0.5 (spread widening)
+```
+
 ---
 
-## Modules
+## Usage Examples
 
-### `market_validator`
-Binary pass/fail gate. A market must satisfy ALL rules:
+### MarketValidator
 
-| Rule | Threshold |
-|------|-----------|
-| Volume | ≥ $1,000 in 24h |
-| Spread | ≤ 10% of price |
-| Liquidity | ≥ $500 at top of book |
-| Age | ≥ 6 hours since creation |
-| Slippage | ≤ 15% on FAK simulation |
+```rust
+use pm_core::{ValidatorConfig, ValidatorMetrics, validate};
 
-### `market_momentum`
-Composite score 0–100 combining:
-- Volume acceleration (3-period trend)
-- Spread compression vs baseline
-- Price stability (standard deviation of recent prices)
+let cfg = ValidatorConfig::default();
+let metrics = ValidatorMetrics {
+    live: true,
+    spread_pct: 2.0,
+    book_depth_usd: 10_000.0,
+    hours_remaining: 48.0,
+    whale_fill_price: 0.55,
+    current_best_ask: 0.551,
+};
 
-### `risk_guard`
-Position sizing with hard limits:
-- `max_order_usd` — single order cap
-- `max_market_exposure` — per-market cap
-- `max_total_exposure` — portfolio-wide cap
-- `daily_loss_limit` — automatic circuit breaker
+let result = validate(&cfg, &metrics);
+assert!(result.pass);
+```
 
-### `exposure_tracker`
-Tracks open positions in-memory with:
-- Cost-basis P&L per market
-- Drawdown monitoring
-- Multi-market aggregation
+### RiskGuard
 
-### `trade_journal`
-Append-only CSV journal with fields:
-`ts, market, side, size, price, order_type, filled, avg_fill_price, cost_usdc, status, tx_hash`
+```rust
+use pm_core::{RiskGuard, RiskGuardConfig, Decision};
+
+let config = RiskGuardConfig::default();
+let mut guard = RiskGuard::new(config);
+
+match guard.check_fast("POLITICS-2024-1", 5000.0) {
+    Decision::Allow => { /* place order */ }
+    Decision::Block(reason) => { /* log + skip */ }
+}
+```
+
+### MarketMomentum
+
+```rust
+use pm_core::{MarketMomentum, MomentumContext, MomentumWeights};
+
+let ctx = MomentumContext {
+    volume_24h: 100_000.0,
+    volume_7d_avg: 50_000.0,
+    spread_pct_now: 0.005,
+    spread_pct_1h_ago: 0.020,
+    price_1h_ago: 0.55,
+    price_now: 0.57,
+    whale_fill_price: 0.57,
+    num_unique_traders_24h: 15,
+};
+
+let result = MomentumResult::compute(&ctx, &MomentumWeights::default());
+println!("Momentum: {:.2}", result.momentum_score);
+```
+
+### TradeJournal
+
+```rust
+use pm_core::{TradeJournal, TradeEntry};
+
+// Real mode (background thread writes CSV)
+let journal = TradeJournal::new("/data/trades");
+
+// Noop mode (for testing)
+let journal = TradeJournal::noop();
+
+journal.log_trade(TradeEntry { ... });
+```
 
 ---
 
@@ -105,22 +151,41 @@ Append-only CSV journal with fields:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Trading Bot                                           │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │ Market   │→ │  Risk    │→ │  Order Executor   │  │
-│  │ Validator │  │  Guard   │  │                  │  │
-│  └──────────┘  └──────────┘  └──────────────────┘  │
-│        ↓             ↓                                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │ Market   │  │Exposure │  │  Trade Journal   │  │
-│  │ Momentum │  │ Tracker │  │                  │  │
-│  └──────────┘  └──────────┘  └──────────────────┘  │
+│                   Trading Engine                          │
+│   (copy-trading bot, arb bot, etc.)                      │
+└────────────┬────────────────────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────────────────┐
+│                     pm-core                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │
+│  │ MarketValidator│  │RiskGuard    │  │MarketMomentum│  │
+│  │  (gate)       │  │(circuit brk)│  │ (sentiment) │  │
+│  └──────────────┘  └──────────────┘  └─────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐                    │
+│  │ExposureTracker│  │TradeJournal │                    │
+│  │  (PnL)       │  │(async CSV)  │                    │
+│  └──────────────┘  └──────────────┘                    │
 └─────────────────────────────────────────────────────────┘
-                     ↑
-              pm-core (this crate)
 ```
 
+pm-core is the **decision layer** — it makes the go/no-go calls.
+The execution layer (order submission, wallet signing) is handled by your bot.
+
 ---
+
+## Documentation
+
+- [market_validator](docs/market-validator.md) — 5-rule binary market gate
+- [risk_guard](docs/risk-guard.md) — circuit breaker design
+- [market_momentum](docs/market-momentum.md) — 3-factor sentiment score
+
+---
+
+## Status
+
+`pm-core` is production software running on the author's own trading infrastructure.
+The API is stable — breaking changes will increment the major version.
 
 ## License
 
