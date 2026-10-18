@@ -1,0 +1,59 @@
+[package]
+name = "pm-core"
+version = "0.1.0"
+edition = "2021"
+description = "Core market validation, risk management and scoring primitives for the Polymarket CLOB trading ecosystem"
+license = "MIT"
+repository = "https://github.com/fernando-karl/pm-core"
+keywords = ["polymarket", "trading", "risk-management", "market-analysis"]
+categories = ["finance", "trading"]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Numeric computing
+ryu = "1"          # Fast f64→string (no allocations)
+itoa = "1"         # Fast i32→string
+rand = "0.8"
+
+# Hash collections (faster than std::HashMap for primitive keys)
+rustc-hash = "1.1"
+
+# String processing
+memchr = "2"        # Fast substring search
+urlencoding = "2"
+
+# Base64 (for API signatures)
+base64 = "0.22"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+
+# Logging / observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+
+# Date/time
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+
+# Error handling
+anyhow = "1"
+
+[dev-dependencies]
+tempfile = "3"
+criterion = "0.5"
+
+[[bin]]
+name = "demo"
+path = "src/bin/demo.rs"
+
+[profile.release]
+opt-level = 3
+lto = 'thin'
+codegen-units = 2
