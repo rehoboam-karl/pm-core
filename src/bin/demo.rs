@@ -3,7 +3,6 @@
 //! Run: cargo run --bin demo
 
 use pm_core::*;
-use std::time::Duration;
 
 fn main() {
     tracing_subscriber::fmt()
