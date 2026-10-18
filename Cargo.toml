@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Core market validation, risk management and scoring primitives for the Polymarket CLOB trading ecosystem"
 license = "MIT"
-repository = "https://github.com/fernando-karl/pm-core"
+repository = "https://github.com/rehoboam-karl/pm-core"
 keywords = ["polymarket", "trading", "risk-management", "market-analysis"]
 categories = ["finance", "trading"]
 
