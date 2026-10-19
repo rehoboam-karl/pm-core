@@ -20,30 +20,30 @@
 //! All modules are framework-agnostic: no runtime, no network I/O, no API
 //! credentials required.  Pure business logic with exhaustive unit tests.
 
-pub mod models;
-pub mod market_validator;
-pub mod market_momentum;
-pub mod risk_guard;
 pub mod exposure_tracker;
-pub mod trade_journal;
 pub mod market_cache;
+pub mod market_momentum;
+pub mod market_validator;
+pub mod models;
+pub mod risk_guard;
+pub mod trade_journal;
 
 // Re-export the key types for ergonomic use
+pub use market_validator::validate;
 pub use market_validator::{
-    ValidatorConfig, ValidatorMetrics, ValidatorResult, ValidatorFailReason,
-};
-pub use market_validator::validate; // free function
+    ValidatorConfig, ValidatorFailReason, ValidatorMetrics, ValidatorResult,
+}; // free function
 
 pub use market_momentum::{
-    MomentumContext, MomentumSubScores, MomentumResult, MomentumRawMetrics, MomentumWeights,
+    MomentumContext, MomentumRawMetrics, MomentumResult, MomentumSubScores, MomentumWeights,
 };
 pub use risk_guard::{
-    RiskGuard, RiskGuardConfig, SafetyDecision, SafetyEvaluation, SafetyReason,
-    TradeSide, calc_liquidity_depth,
+    calc_liquidity_depth, RiskGuard, RiskGuardConfig, SafetyDecision, SafetyEvaluation,
+    SafetyReason, TradeSide,
 };
 
 pub use exposure_tracker::ExposureTracker;
 
-pub use trade_journal::{TradeJournal, TradeEntry};
+pub use trade_journal::{TradeEntry, TradeJournal};
 
-pub use market_cache::{MarketCaches, CacheStats, CacheLoadResult};
+pub use market_cache::{CacheLoadResult, CacheStats, MarketCaches};

@@ -77,15 +77,15 @@ impl Default for MomentumWeights {
 /// Score volume acceleration (0.0 to 1.0)
 fn score_volume_acceleration(ratio: f64) -> f64 {
     if ratio > 2.0 {
-        1.0  // volume > 2x average: hot market
+        1.0 // volume > 2x average: hot market
     } else if ratio >= 1.5 {
         0.85
     } else if ratio >= 1.0 {
-        0.65  // normal
+        0.65 // normal
     } else if ratio >= 0.5 {
-        0.35  // below average: caution
+        0.35 // below average: caution
     } else {
-        0.10  // market dying
+        0.10 // market dying
     }
 }
 
@@ -93,15 +93,15 @@ fn score_volume_acceleration(ratio: f64) -> f64 {
 // delta > 0 means spread tightened (good), delta < 0 means spread widened (bad)
 fn score_spread_trend(delta: f64) -> f64 {
     if delta > 2.0 {
-        1.0  // spread tightened a lot: excellent
+        1.0 // spread tightened a lot: excellent
     } else if delta >= 0.5 {
         0.80
     } else if delta >= -0.5 {
-        0.60  // stable
+        0.60 // stable
     } else if delta >= -2.0 {
-        0.30  // widening: care
+        0.30 // widening: care
     } else {
-        0.05  // widening fast: likely adverse event
+        0.05 // widening fast: likely adverse event
     }
 }
 
@@ -109,15 +109,15 @@ fn score_spread_trend(delta: f64) -> f64 {
 // Returns (score, is_hard_block)
 fn score_price_stability(price_move_pct: f64) -> (f64, bool) {
     if price_move_pct < 2.0 {
-        (1.0, false)  // calm market, whale is catalyst
+        (1.0, false) // calm market, whale is catalyst
     } else if price_move_pct < 5.0 {
         (0.70, false)
     } else if price_move_pct < 10.0 {
-        (0.35, false)  // already moved
+        (0.35, false) // already moved
     } else if price_move_pct < 20.0 {
         (0.10, false)
     } else {
-        (0.0, true)  // HARD BLOCK: move already happened
+        (0.0, true) // HARD BLOCK: move already happened
     }
 }
 
@@ -140,7 +140,7 @@ impl MomentumResult {
         let volume_ratio = if ctx.volume_7d_avg > 0.0 {
             ctx.volume_24h / ctx.volume_7d_avg
         } else {
-            1.0  // default to normal if no history
+            1.0 // default to normal if no history
         };
 
         let spread_delta = ctx.spread_pct_1h_ago - ctx.spread_pct_now;
@@ -231,7 +231,6 @@ impl MomentumResult {
 /// - time_value: 0.10
 /// - position_crowding: 0.10
 /// - price_zone: 0.05
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -262,18 +261,18 @@ mod tests {
 
         let (score, block) = score_price_stability(25.0);
         assert_eq!(score, 0.0);
-        assert!(block);  // hard block!
+        assert!(block); // hard block!
     }
 
     #[test]
     fn test_good_momentum() {
         let ctx = MomentumContext {
             volume_24h: 16000.0,
-            volume_7d_avg: 10000.0,  // 1.6x
+            volume_7d_avg: 10000.0, // 1.6x
             spread_pct_now: 5.0,
-            spread_pct_1h_ago: 6.2,  // +1.2% tightening
+            spread_pct_1h_ago: 6.2, // +1.2% tightening
             price_1h_ago: 0.50,
-            price_now: 0.5175,  // 3.5% move
+            price_now: 0.5175, // 3.5% move
             whale_fill_price: 0.50,
             num_unique_traders_24h: 150,
         };
@@ -293,7 +292,7 @@ mod tests {
             spread_pct_now: 5.0,
             spread_pct_1h_ago: 5.0,
             price_1h_ago: 0.50,
-            price_now: 0.65,  // 30% move!
+            price_now: 0.65, // 30% move!
             whale_fill_price: 0.50,
             num_unique_traders_24h: 150,
         };
@@ -302,7 +301,10 @@ mod tests {
         let result = MomentumResult::compute(&ctx, &weights);
 
         assert!(result.force_skip);
-        assert_eq!(result.force_skip_reason, Some("PRICE_ALREADY_MOVED".to_string()));
+        assert_eq!(
+            result.force_skip_reason,
+            Some("PRICE_ALREADY_MOVED".to_string())
+        );
         assert_eq!(result.momentum_score, 0.0);
     }
 }

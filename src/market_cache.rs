@@ -1,6 +1,5 @@
 /// Market cache management with automatic refresh
 /// Handles caching of market data, tokens, and live status
-
 use rustc_hash::FxHashMap;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -88,9 +87,11 @@ impl MarketCaches {
                 let count = map.len();
                 if let Ok(mut cache) = self.neg_risk.write() {
                     cache.clear();
-                    cache.extend(map.into_iter());
+                    cache.extend(map);
                     result.neg_risk_loaded = count;
-                    self.stats.neg_risk_count.store(count as u64, Ordering::Relaxed);
+                    self.stats
+                        .neg_risk_count
+                        .store(count as u64, Ordering::Relaxed);
                 }
             }
         }
@@ -101,7 +102,7 @@ impl MarketCaches {
                 let count = map.len();
                 if let Ok(mut cache) = self.slugs.write() {
                     cache.clear();
-                    cache.extend(map.into_iter());
+                    cache.extend(map);
                     result.slugs_loaded = count;
                     self.stats.slug_count.store(count as u64, Ordering::Relaxed);
                 }
@@ -114,7 +115,7 @@ impl MarketCaches {
                 let count = map.len();
                 if let Ok(mut cache) = self.outcome_titles.write() {
                     cache.clear();
-                    cache.extend(map.into_iter());
+                    cache.extend(map);
                     tracing::info!("Loaded {} outcome titles from cache", count);
                 }
             }
@@ -126,9 +127,11 @@ impl MarketCaches {
                 let count = map.len();
                 if let Ok(mut cache) = self.tennis_tokens.write() {
                     cache.clear();
-                    cache.extend(map.into_iter());
+                    cache.extend(map);
                     result.atp_loaded = count;
-                    self.stats.tennis_count.store(count as u64, Ordering::Relaxed);
+                    self.stats
+                        .tennis_count
+                        .store(count as u64, Ordering::Relaxed);
                 }
             }
         }
@@ -141,7 +144,9 @@ impl MarketCaches {
                     cache.clear();
                     cache.extend(tokens.into_iter().map(|t| (t, ())));
                     result.ligue1_loaded = count;
-                    self.stats.soccer_count.store(count as u64, Ordering::Relaxed);
+                    self.stats
+                        .soccer_count
+                        .store(count as u64, Ordering::Relaxed);
                 }
             }
         }
@@ -152,7 +157,7 @@ impl MarketCaches {
                 let count = map.len();
                 if let Ok(mut cache) = self.live_status.write() {
                     cache.clear();
-                    cache.extend(map.into_iter());
+                    cache.extend(map);
                     result.live_loaded = count;
                     self.stats.live_count.store(count as u64, Ordering::Relaxed);
                 }
@@ -169,7 +174,9 @@ impl MarketCaches {
             .as_secs();
         self.last_refresh.store(now, Ordering::Relaxed);
         self.stats.refresh_count.fetch_add(1, Ordering::Relaxed);
-        self.stats.last_refresh_duration_ms.store(result.load_time_ms, Ordering::Relaxed);
+        self.stats
+            .last_refresh_duration_ms
+            .store(result.load_time_ms, Ordering::Relaxed);
 
         result
     }
@@ -195,25 +202,39 @@ impl MarketCaches {
     /// Check if token is ATP market
     #[inline]
     pub fn is_atp_token(&self, token_id: &str) -> bool {
-        self.tennis_tokens.read().map(|c| c.contains_key(token_id)).unwrap_or(false)
+        self.tennis_tokens
+            .read()
+            .map(|c| c.contains_key(token_id))
+            .unwrap_or(false)
     }
 
     /// Check if token is Ligue 1 market
     #[inline]
     pub fn is_ligue1_token(&self, token_id: &str) -> bool {
-        self.soccer_tokens.read().map(|c| c.contains_key(token_id)).unwrap_or(false)
+        self.soccer_tokens
+            .read()
+            .map(|c| c.contains_key(token_id))
+            .unwrap_or(false)
     }
 
     /// Get ATP buffer for token (0.01 if ATP, 0.0 otherwise)
     #[inline]
     pub fn get_atp_buffer(&self, token_id: &str) -> f64 {
-        if self.is_atp_token(token_id) { TENNIS_BUFFER } else { 0.0 }
+        if self.is_atp_token(token_id) {
+            TENNIS_BUFFER
+        } else {
+            0.0
+        }
     }
 
     /// Get Ligue 1 buffer for token (0.01 if Ligue1, 0.0 otherwise)
     #[inline]
     pub fn get_ligue1_buffer(&self, token_id: &str) -> f64 {
-        if self.is_ligue1_token(token_id) { SOCCER_BUFFER } else { 0.0 }
+        if self.is_ligue1_token(token_id) {
+            SOCCER_BUFFER
+        } else {
+            0.0
+        }
     }
 
     /// Get live status for token (for GTD expiry calculation)
@@ -328,7 +349,10 @@ pub fn refresh_caches() -> CacheLoadResult {
 pub fn spawn_cache_refresh_task() -> tokio::task::JoinHandle<()> {
     tokio::spawn(async {
         let interval = Duration::from_secs(CACHE_REFRESH_INTERVAL_SECS);
-        println!("🔄 Cache refresh task started (interval: {}s)", CACHE_REFRESH_INTERVAL_SECS);
+        println!(
+            "🔄 Cache refresh task started (interval: {}s)",
+            CACHE_REFRESH_INTERVAL_SECS
+        );
 
         loop {
             tokio::time::sleep(interval).await;

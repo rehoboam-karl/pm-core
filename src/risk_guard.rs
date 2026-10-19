@@ -1,7 +1,6 @@
 /// Risk management and safety guard for trade execution
 /// Provides protection against dangerous market conditions
 #[allow(dead_code)]
-
 use rustc_hash::FxHashMap;
 use std::time::{Duration, Instant};
 
@@ -119,15 +118,15 @@ impl RiskGuard {
             tokens: FxHashMap::default(),
         }
     }
-    
+
     /// Hot path - no allocations if token exists
     #[inline]
     pub fn check_fast(&mut self, token_id: &str, whale_shares: f64) -> SafetyEvaluation {
         let now = Instant::now();
-        
+
         // Use entry API - single lookup instead of get_mut + insert + get_mut
-        let state = self.tokens.entry(token_id.to_string()).or_insert_with(TokenState::new);
-        
+        let state = self.tokens.entry(token_id.to_string()).or_default();
+
         // Check trip
         if let Some(until) = state.tripped_until {
             if now < until {
@@ -141,7 +140,7 @@ impl RiskGuard {
             }
             state.tripped_until = None;
         }
-        
+
         // Small trade - fast path
         if whale_shares < self.config.large_trade_shares {
             return SafetyEvaluation {
@@ -150,7 +149,7 @@ impl RiskGuard {
                 consecutive_large: 0,
             };
         }
-        
+
         // Count consecutive (no pruning on hot path)
         let consecutive = Self::count_large_in_window(
             state,
@@ -158,18 +157,18 @@ impl RiskGuard {
             self.config.sequence_window,
             self.config.large_trade_shares,
         ) + 1;
-        
+
         // Record trade
         state.large_trades.push((now, whale_shares));
-        
+
         // Lazy prune
         if state.large_trades.len() > 16 {
             let cutoff = now - self.config.sequence_window;
             state.large_trades.retain(|(ts, _)| *ts > cutoff);
         }
-        
+
         let count = consecutive.min(255) as u8;
-        
+
         if consecutive >= self.config.consecutive_trigger as usize {
             SafetyEvaluation {
                 decision: SafetyDecision::FetchBook,
@@ -184,7 +183,7 @@ impl RiskGuard {
             }
         }
     }
-    
+
     #[inline]
     pub fn check_with_book(
         &mut self,
@@ -193,12 +192,12 @@ impl RiskGuard {
         depth_beyond_usd: f64,
     ) -> SafetyEvaluation {
         let depth_u16 = (depth_beyond_usd.min(65535.0)) as u16;
-        
+
         if depth_beyond_usd < self.config.min_depth_beyond_usd {
             // Trip - create state if needed
             let state = self.tokens.entry(token_id.to_string()).or_default();
             state.tripped_until = Some(Instant::now() + self.config.trip_duration);
-            
+
             SafetyEvaluation {
                 decision: SafetyDecision::Block,
                 reason: SafetyReason::Trap {
@@ -218,13 +217,13 @@ impl RiskGuard {
             }
         }
     }
-    
+
     pub fn trip(&mut self, token_id: &str) {
         if let Some(state) = self.tokens.get_mut(token_id) {
             state.tripped_until = Some(Instant::now() + self.config.trip_duration);
         }
     }
-    
+
     #[inline]
     fn count_large_in_window(
         state: &TokenState,
@@ -233,7 +232,7 @@ impl RiskGuard {
         large_trade_shares: f64,
     ) -> usize {
         let cutoff = now - sequence_window;
-        
+
         state
             .large_trades
             .iter()
@@ -253,7 +252,7 @@ pub fn calc_liquidity_depth(side: TradeSide, levels: &[(f64, f64)], threshold: f
     } else {
         threshold * 0.995
     };
-    
+
     let mut total = 0.0;
     for &(price, size) in levels {
         let beyond = if side == TradeSide::Buy {
@@ -290,11 +289,11 @@ mod tests {
     #[test]
     fn test_two_large_triggers_fetch() {
         let mut cb = RiskGuard::new(RiskGuardConfig::default());
-        cb.check_fast("token1", 2000.0);  // First
+        cb.check_fast("token1", 2000.0); // First
         cb.check_fast("token1", 2000.0);
         cb.check_fast("token1", 2000.0);
         cb.check_fast("token1", 2000.0);
-        let eval = cb.check_fast("token1", 2000.0);  // Second
+        let eval = cb.check_fast("token1", 2000.0); // Second
         assert_eq!(eval.decision, SafetyDecision::FetchBook);
         assert_eq!(eval.consecutive_large, 5);
     }
@@ -302,14 +301,14 @@ mod tests {
     #[test]
     fn test_thin_book_blocks() {
         let mut cb = RiskGuard::new(RiskGuardConfig::default());
-        let eval = cb.check_with_book("token1", 2, 50.0);  // $50 < $200 threshold
+        let eval = cb.check_with_book("token1", 2, 50.0); // $50 < $200 threshold
         assert_eq!(eval.decision, SafetyDecision::Block);
     }
 
     #[test]
     fn test_good_depth_allows() {
         let mut cb = RiskGuard::new(RiskGuardConfig::default());
-        let eval = cb.check_with_book("token1", 2, 500.0);  // $500 > $200 threshold
+        let eval = cb.check_with_book("token1", 2, 500.0); // $500 > $200 threshold
         assert_eq!(eval.decision, SafetyDecision::Allow);
     }
 
@@ -319,12 +318,12 @@ mod tests {
             trip_duration: Duration::from_secs(10),
             ..Default::default()
         });
-        
+
         // Trip it
         cb.check_with_book("token1", 2, 50.0);
-        
+
         // Should still be blocked
-        let eval = cb.check_fast("token1", 100.0);  // Even small trade
+        let eval = cb.check_fast("token1", 100.0); // Even small trade
         assert_eq!(eval.decision, SafetyDecision::Block);
     }
 
@@ -335,9 +334,9 @@ mod tests {
         cb.check_fast("token1", 2000.0);
         cb.check_fast("token1", 2000.0);
         cb.check_fast("token1", 2000.0);
-        cb.check_fast("token1", 2000.0); 
-        
-        let eval = cb.check_fast("token2", 2000.0);  // token2 first large
+        cb.check_fast("token1", 2000.0);
+
+        let eval = cb.check_fast("token2", 2000.0); // token2 first large
         assert_eq!(eval.decision, SafetyDecision::Allow);
         assert_eq!(eval.consecutive_large, 1);
     }
@@ -345,9 +344,9 @@ mod tests {
     #[test]
     fn test_depth_calculation() {
         let asks = vec![
-            (0.54, 100.0),  // At threshold
-            (0.55, 200.0),  // Beyond
-            (0.60, 150.0),  // Beyond
+            (0.54, 100.0), // At threshold
+            (0.55, 200.0), // Beyond
+            (0.60, 150.0), // Beyond
         ];
         let depth = calc_liquidity_depth(TradeSide::Buy, &asks, 0.54);
         // 0.55 * 200 + 0.60 * 150 = 110 + 90 = 200

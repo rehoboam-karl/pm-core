@@ -5,9 +5,7 @@
 use pm_core::*;
 
 fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter("info")
-        .init();
+    tracing_subscriber::fmt().with_env_filter("info").init();
 
     println!("=== pm-core Demo ===\n");
 
@@ -120,7 +118,10 @@ fn demo_market_momentum() {
         num_unique_traders_24h: 8,
     };
     let result = MomentumResult::compute(&ctx, &weights);
-    println!("  Period 1 momentum: {:.1} (calm market)", result.momentum_score);
+    println!(
+        "  Period 1 momentum: {:.1} (calm market)",
+        result.momentum_score
+    );
 
     // Period 2: volume surge + spread compression = bullish
     let ctx = MomentumContext {
@@ -134,7 +135,10 @@ fn demo_market_momentum() {
         num_unique_traders_24h: 15,
     };
     let result = MomentumResult::compute(&ctx, &weights);
-    println!("  Period 2 momentum: {:.1} (volume surge)", result.momentum_score);
+    println!(
+        "  Period 2 momentum: {:.1} (volume surge)",
+        result.momentum_score
+    );
 
     // Period 3: spread widening = weakening
     let ctx = MomentumContext {
@@ -148,6 +152,9 @@ fn demo_market_momentum() {
         num_unique_traders_24h: 3,
     };
     let result = MomentumResult::compute(&ctx, &weights);
-    println!("  Period 3 momentum: {:.1} (spread widening)", result.momentum_score);
+    println!(
+        "  Period 3 momentum: {:.1} (spread widening)",
+        result.momentum_score
+    );
     println!();
 }

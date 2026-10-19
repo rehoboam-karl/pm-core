@@ -10,7 +10,7 @@ use tokio::sync::oneshot;
 #[derive(Debug, Clone)]
 pub struct OrderInfo {
     pub order_type: String,
-    pub clob_token_id: Arc<str>,  
+    pub clob_token_id: Arc<str>,
     pub usd_value: f64,
     pub shares: f64,
     pub price_per_share: f64,
@@ -21,7 +21,7 @@ pub struct OrderInfo {
 pub struct ParsedEvent {
     pub block_number: u64,
     pub tx_hash: String,
-    pub whale_topic: String,  // The whale topic that triggered this event
+    pub whale_topic: String, // The whale topic that triggered this event
     pub order: OrderInfo,
 }
 
@@ -33,15 +33,15 @@ pub struct WorkItem {
     pub is_live: Option<bool>,
 }
 
-/// Size calculation result 
+/// Size calculation result
 #[derive(Debug, Clone, Copy)]
 pub enum SizeType {
     Scaled,
-    ProbHit(u8),   // percentage
-    ProbSkip(u8),  // percentage
+    ProbHit(u8),  // percentage
+    ProbSkip(u8), // percentage
 }
 
-/// Request to resubmit a failed FAK order 
+/// Request to resubmit a failed FAK order
 /// Fields ordered to minimize padding: f64s together, then bools/u8 at end
 #[derive(Debug, Clone)]
 pub struct ResubmitRequest {

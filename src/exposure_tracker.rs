@@ -25,7 +25,9 @@ impl ExposureTracker {
     /// safe to call from any thread.
     pub fn record_fill(&self, market_id: &str, whale_address: &str, shares: f64, price: f64) {
         let cost = shares * price;
-        if cost <= 0.0 { return; }
+        if cost <= 0.0 {
+            return;
+        }
 
         // Per-whale exposure (short address key, like Python scorer)
         let whale_key = whale_address[..whale_address.len().min(16)].to_string();
@@ -42,27 +44,39 @@ impl ExposureTracker {
     /// Queried by Python scorer via HTTP.
     pub fn get_whale_exposure(&self, whale_address: &str) -> (f64, f64, f64) {
         let whale_key = whale_address[..whale_address.len().min(16)].to_string();
-        
-        let whale_exp = self.whale_exposures.read()
+
+        let whale_exp = self
+            .whale_exposures
+            .read()
             .ok()
             .and_then(|w| w.get(&whale_key).copied())
             .unwrap_or(0.0);
 
-        let total_exp: f64 = self.whale_exposures.read()
+        let total_exp: f64 = self
+            .whale_exposures
+            .read()
             .map(|w| w.values().sum())
             .unwrap_or(0.0);
 
-        let concentration = if total_exp > 0.0 { whale_exp / total_exp } else { 0.0 };
+        let concentration = if total_exp > 0.0 {
+            whale_exp / total_exp
+        } else {
+            0.0
+        };
 
         (whale_exp, total_exp, concentration)
     }
 
     /// Full snapshot for JSON serialization (GET /exposure endpoint)
     pub fn snapshot(&self) -> ExposureSnapshot {
-        let whale_exposures = self.whale_exposures.read()
+        let whale_exposures = self
+            .whale_exposures
+            .read()
             .map(|w| w.clone())
             .unwrap_or_default();
-        let market_exposures = self.market_exposures.read()
+        let market_exposures = self
+            .market_exposures
+            .read()
             .map(|m| m.clone())
             .unwrap_or_default();
         let total: f64 = whale_exposures.values().sum();
@@ -76,7 +90,9 @@ impl ExposureTracker {
 }
 
 impl Default for ExposureTracker {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(Serialize)]

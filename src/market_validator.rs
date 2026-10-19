@@ -60,10 +60,10 @@ pub struct ValidatorConfig {
 impl Default for ValidatorConfig {
     fn default() -> Self {
         Self {
-            max_spread_pct: 10.0,           // 10% max spread
-            min_book_depth_usd: 2000.0,      // $2000 min depth
-            min_hours_remaining: 6.0,        // 6 hours min
-            max_slippage_pct: 15.0,         // 15% max slippage
+            max_spread_pct: 10.0,       // 10% max spread
+            min_book_depth_usd: 2000.0, // $2000 min depth
+            min_hours_remaining: 6.0,   // 6 hours min
+            max_slippage_pct: 15.0,     // 15% max slippage
         }
     }
 }
@@ -246,7 +246,7 @@ mod tests {
         let config = ValidatorConfig::default();
         let metrics = ValidatorMetrics {
             live: true,
-            spread_pct: 15.0,  // > 10%
+            spread_pct: 15.0, // > 10%
             book_depth_usd: 5000.0,
             hours_remaining: 24.0,
             whale_fill_price: 0.50,
@@ -265,7 +265,7 @@ mod tests {
         let metrics = ValidatorMetrics {
             live: true,
             spread_pct: 5.0,
-            book_depth_usd: 1000.0,  // < $2000
+            book_depth_usd: 1000.0, // < $2000
             hours_remaining: 24.0,
             whale_fill_price: 0.50,
             current_best_ask: 0.55,
@@ -273,7 +273,10 @@ mod tests {
 
         let result = validate(&config, &metrics);
         assert!(!result.pass);
-        assert_eq!(result.fail_reason, Some("INSUFFICIENT_LIQUIDITY".to_string()));
+        assert_eq!(
+            result.fail_reason,
+            Some("INSUFFICIENT_LIQUIDITY".to_string())
+        );
         assert!(!result.counts_as_whale_block);
     }
 
@@ -284,7 +287,7 @@ mod tests {
             live: true,
             spread_pct: 5.0,
             book_depth_usd: 5000.0,
-            hours_remaining: 3.0,  // < 6h
+            hours_remaining: 3.0, // < 6h
             whale_fill_price: 0.50,
             current_best_ask: 0.55,
         };
@@ -296,7 +299,7 @@ mod tests {
     }
 
     #[test]
-   fn test_slippage_too_high() {
+    fn test_slippage_too_high() {
         let config = ValidatorConfig::default();
         let metrics = ValidatorMetrics {
             live: true,
@@ -304,13 +307,13 @@ mod tests {
             book_depth_usd: 5000.0,
             hours_remaining: 24.0,
             whale_fill_price: 0.50,
-            current_best_ask: 0.60,  // 20% slippage
+            current_best_ask: 0.60, // 20% slippage
         };
 
         let result = validate(&config, &metrics);
         assert!(!result.pass);
         assert_eq!(result.fail_reason, Some("SLIPPAGE_TOO_HIGH".to_string()));
-        assert!(result.counts_as_whale_block);  // This DOES count!
+        assert!(result.counts_as_whale_block); // This DOES count!
     }
 
     #[test]
@@ -322,7 +325,7 @@ mod tests {
             book_depth_usd: 4200.0,
             hours_remaining: 72.0,
             whale_fill_price: 0.50,
-            current_best_ask: 0.545,  // 9% slippage
+            current_best_ask: 0.545, // 9% slippage
         };
 
         let result = validate(&config, &metrics);
