@@ -84,7 +84,7 @@ use pm_core::{ValidatorConfig, ValidatorMetrics, validate};
 let cfg = ValidatorConfig::default();
 let metrics = ValidatorMetrics {
     live: true,
-    spread_pct: 2.0,
+    spread_pct: 2.0,     // percent (2.0 = 2%)
     book_depth_usd: 10_000.0,
     hours_remaining: 48.0,
     whale_fill_price: 0.55,
@@ -106,13 +106,14 @@ let mut guard = RiskGuard::new(config);
 // Fast check: sequence + size limits
 match guard.check_fast("EXAMPLE-MARKET-1", 5000.0) {
     Decision::Allow => { /* continue */ }
-    Decision::Block(reason) => { /* log + skip */ }
+    Decision::Block(_reason) => { /* log + skip */ }
 }
 
 // Deeper check: also validates book depth against spread
+// args: token_id, consecutive_trades, depth_beyond_whale_size_usd
 match guard.check_with_book("EXAMPLE-MARKET-1", 5, 100.0) {
     Decision::Allow => { /* place order */ }
-    Decision::Block(reason) => { /* insufficient book depth */ }
+    Decision::Block(_reason) => { /* insufficient book depth */ }
 }
 ```
 
