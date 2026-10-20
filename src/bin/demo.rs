@@ -106,15 +106,15 @@ fn demo_market_momentum() {
 
     let weights = MomentumWeights::default();
 
-    // Period 1: baseline
+    // Period 1: baseline — calm market, no price movement
     let ctx = MomentumContext {
         volume_24h: 50_000.0,
         volume_7d_avg: 50_000.0,
-        spread_pct_now: 0.01,
-        spread_pct_1h_ago: 0.01,
+        spread_pct_now: 0.015,
+        spread_pct_1h_ago: 0.015,
         price_1h_ago: 0.55,
-        price_now: 0.55,
-        whale_fill_price: 0.55,
+        price_now: 0.56,  // +1.8%
+        whale_fill_price: 0.56,
         num_unique_traders_24h: 8,
     };
     let result = MomentumResult::compute(&ctx, &weights);
@@ -125,13 +125,13 @@ fn demo_market_momentum() {
 
     // Period 2: volume surge + spread compression = bullish
     let ctx = MomentumContext {
-        volume_24h: 100_000.0,
+        volume_24h: 75_000.0,
         volume_7d_avg: 50_000.0,
         spread_pct_now: 0.005,
-        spread_pct_1h_ago: 0.02,
+        spread_pct_1h_ago: 0.015,  // spread tightened
         price_1h_ago: 0.55,
-        price_now: 0.57,
-        whale_fill_price: 0.57,
+        price_now: 0.562,  // +2.2%
+        whale_fill_price: 0.562,
         num_unique_traders_24h: 15,
     };
     let result = MomentumResult::compute(&ctx, &weights);
@@ -142,13 +142,13 @@ fn demo_market_momentum() {
 
     // Period 3: spread widening = weakening
     let ctx = MomentumContext {
-        volume_24h: 20_000.0,
+        volume_24h: 25_000.0,
         volume_7d_avg: 50_000.0,
         spread_pct_now: 0.03,
-        spread_pct_1h_ago: 0.01,
-        price_1h_ago: 0.56,
-        price_now: 0.55,
-        whale_fill_price: 0.55,
+        spread_pct_1h_ago: 0.01,  // spread widened
+        price_1h_ago: 0.57,
+        price_now: 0.558,  // -2.1%
+        whale_fill_price: 0.558,
         num_unique_traders_24h: 3,
     };
     let result = MomentumResult::compute(&ctx, &weights);

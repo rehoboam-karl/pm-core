@@ -67,9 +67,9 @@ cargo run --bin demo
   Entries written: (noop mode — see real journal in production)
 
 --- MarketMomentum ---
-  Period 1 momentum: 0.7 (calm market)
-  Period 2 momentum: 0.7 (volume surge)
-  Period 3 momentum: 0.5 (spread widening)
+  Period 1 momentum: 0.9 (calm market)
+  Period 2 momentum: 1.0 (volume surge)
+  Period 3 momentum: 0.4 (spread widening)
 ```
 
 ---
@@ -125,10 +125,10 @@ let ctx = MomentumContext {
     volume_24h: 100_000.0,
     volume_7d_avg: 50_000.0,
     spread_pct_now: 0.005,
-    spread_pct_1h_ago: 0.020,
+    spread_pct_1h_ago: 0.015,  // spread tightened: 1.5% → 0.5%
     price_1h_ago: 0.55,
-    price_now: 0.57,
-    whale_fill_price: 0.57,
+    price_now: 0.562,  // +2.2%
+    whale_fill_price: 0.562,
     num_unique_traders_24h: 15,
 };
 

@@ -269,8 +269,8 @@ mod tests {
         let ctx = MomentumContext {
             volume_24h: 16000.0,
             volume_7d_avg: 10000.0, // 1.6x
-            spread_pct_now: 5.0,
-            spread_pct_1h_ago: 6.2, // +1.2% tightening
+            spread_pct_now: 0.05,
+            spread_pct_1h_ago: 0.062, // spread tightened: 6.2% → 5.0%
             price_1h_ago: 0.50,
             price_now: 0.5175, // 3.5% move
             whale_fill_price: 0.50,
@@ -289,8 +289,8 @@ mod tests {
         let ctx = MomentumContext {
             volume_24h: 10000.0,
             volume_7d_avg: 10000.0,
-            spread_pct_now: 5.0,
-            spread_pct_1h_ago: 5.0,
+            spread_pct_now: 0.05,
+            spread_pct_1h_ago: 0.05,
             price_1h_ago: 0.50,
             price_now: 0.65, // 30% move!
             whale_fill_price: 0.50,
