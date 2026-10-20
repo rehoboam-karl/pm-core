@@ -3,7 +3,7 @@
 > ⚠️ **This is not financial advice.** Cryptocurrency and prediction market trading involve substantial risk of loss. This software is for educational and informational purposes only. Use at your own risk.
 
 [![CI](https://github.com/rehoboam-karl/pm-core/actions/workflows/ci.yml/badge.svg)](https://github.com/rehoboam-karl/pm-core/actions)
-[![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/rust-1.77+-orange.svg)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 `pm-core` is a Rust library of components for building Polymarket trading bots: market quality validation, momentum scoring, circuit breakers, position tracking, and trade journaling. Used on the author's own infrastructure.
@@ -103,16 +103,23 @@ use pm_core::{RiskGuard, RiskGuardConfig, Decision};
 let config = RiskGuardConfig::default();
 let mut guard = RiskGuard::new(config);
 
-match guard.check_fast("POLITICS-2024-1", 5000.0) {
-    Decision::Allow => { /* place order */ }
+// Fast check: sequence + size limits
+match guard.check_fast("EXAMPLE-MARKET-1", 5000.0) {
+    Decision::Allow => { /* continue */ }
     Decision::Block(reason) => { /* log + skip */ }
+}
+
+// Deeper check: also validates book depth against spread
+match guard.check_with_book("EXAMPLE-MARKET-1", 5, 100.0) {
+    Decision::Allow => { /* place order */ }
+    Decision::Block(reason) => { /* insufficient book depth */ }
 }
 ```
 
 ### MarketMomentum
 
 ```rust
-use pm_core::{MarketMomentum, MomentumContext, MomentumWeights, MomentumResult};
+use pm_core::{MomentumContext, MomentumWeights, MomentumResult};
 
 let ctx = MomentumContext {
     volume_24h: 100_000.0,
@@ -141,8 +148,8 @@ let journal = TradeJournal::new("/data/trades");
 let journal = TradeJournal::noop();
 
 journal.log_trade(TradeEntry {
-    timestamp: "2026-02-28T10:15:30Z".to_string(),
-    market_id: "POLITICS-2024-1".to_string(),
+    timestamp: "2025-01-01T12:00:00Z".to_string(),
+    market_id: "EXAMPLE-MARKET-1".to_string(),
     whale_address: "0xabcd...".to_string(),
     side: "BUY".to_string(),
     whale_shares: 1000.0,

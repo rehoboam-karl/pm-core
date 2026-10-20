@@ -60,13 +60,13 @@ fn demo_risk_guard() {
     let cfg = RiskGuardConfig::default();
     let mut guard = RiskGuard::new(cfg);
 
-    let result = guard.check_fast("POLITICS-2024-1", 30.0);
+    let result = guard.check_fast("EXAMPLE-MARKET-1", 30.0);
     println!("  Small trade (30 shares): {:?}", result.decision);
 
-    let result = guard.check_fast("POLITICS-2024-1", 5000.0);
+    let result = guard.check_fast("EXAMPLE-MARKET-1", 5000.0);
     println!("  Large trade (5000 shares): {:?}", result.decision);
 
-    let result = guard.check_with_book("POLITICS-2024-1", 5, 100.0);
+    let result = guard.check_with_book("EXAMPLE-MARKET-1", 5, 100.0);
     println!("  With book depth check: {:?}", result.decision);
     println!();
 }
@@ -78,7 +78,7 @@ fn demo_trade_journal() {
     let journal = TradeJournal::noop();
     let entry = TradeEntry {
         timestamp: chrono::Utc::now().to_rfc3339(),
-        market_id: "POLITICS-2024".to_string(),
+        market_id: "EXAMPLE-MARKET".to_string(),
         whale_address: "0xABCDEF".to_string(),
         side: "BUY".to_string(),
         whale_shares: 100.0,
