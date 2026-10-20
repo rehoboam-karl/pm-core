@@ -1,14 +1,12 @@
 # pm-core
 
-> Production-grade building blocks for Polymarket trading systems — in Rust.
+> ⚠️ **This is not financial advice.** Cryptocurrency and prediction market trading involve substantial risk of loss. This software is for educational and informational purposes only. Use at your own risk.
 
 [![CI](https://github.com/rehoboam-karl/pm-core/actions/workflows/ci.yml/badge.svg)](https://github.com/rehoboam-karl/pm-core/actions)
 [![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-`pm-core` is a Rust library of battle-tested components for building
- Polymarket trading bots: market quality validation, momentum scoring,
- circuit breakers, position tracking, and trade journaling.
+`pm-core` is a Rust library of components for building Polymarket trading bots: market quality validation, momentum scoring, circuit breakers, position tracking, and trade journaling. Used on the author's own infrastructure.
 
 **No API keys. No async runtime. Runs anywhere.**
 
@@ -114,7 +112,7 @@ match guard.check_fast("POLITICS-2024-1", 5000.0) {
 ### MarketMomentum
 
 ```rust
-use pm_core::{MarketMomentum, MomentumContext, MomentumWeights};
+use pm_core::{MarketMomentum, MomentumContext, MomentumWeights, MomentumResult};
 
 let ctx = MomentumContext {
     volume_24h: 100_000.0,
@@ -142,7 +140,24 @@ let journal = TradeJournal::new("/data/trades");
 // Noop mode (for testing)
 let journal = TradeJournal::noop();
 
-journal.log_trade(TradeEntry { ... });
+journal.log_trade(TradeEntry {
+    timestamp: "2026-02-28T10:15:30Z".to_string(),
+    market_id: "POLITICS-2024-1".to_string(),
+    whale_address: "0xabcd...".to_string(),
+    side: "BUY".to_string(),
+    whale_shares: 1000.0,
+    whale_price: 0.55,
+    my_shares: 100.0,
+    my_price: 0.551,
+    fill_shares: 100.0,
+    fill_price: 0.551,
+    slippage_bps: 18.2,
+    order_type: "FAK".to_string(),
+    status: "FILLED".to_string(),
+    resubmit_count: 0,
+    block_reason: None,
+    latency_ms: 8,
+});
 ```
 
 ---
@@ -184,8 +199,9 @@ The execution layer (order submission, wallet signing) is handled by your bot.
 
 ## Status
 
-`pm-core` is production software running on the author's own trading infrastructure.
-The API is stable — breaking changes will increment the major version.
+`pm-core` is actively used on the author's own trading infrastructure (AMD64 Linux, Rust 1.77+). It has ~600 unit tests and integration tests with mock data.
+
+This is a personal project, not a funded product. The API is stable — breaking changes will increment the major version.
 
 ## License
 
